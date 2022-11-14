@@ -61,6 +61,11 @@ services:
   onlyoffice:
     image: onlyoffice:documentsever:7.2
     container_name: onlyoffice
+    environment:
+      - JWT_ENABLED=true
+      - JTW_SECRET=$ONLYOFFICE_JWT_SECRET
+      - NGINX_WORKER_PROCESSES=$ONLYOFFICE_NGINX_WORKER_PROCESSES
+      - NGINX_WORKER_CONNECTIONS=$ONLYOFFICE_NGINX_WORKER_CONNECTIONS
     restart: unless-stopped
     networks:
       - proxy
