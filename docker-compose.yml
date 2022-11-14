@@ -2,7 +2,6 @@ version: "3.3"
 
 networks:
   proxy:
-    driver: bridge
     external: true
 
 services:
@@ -59,7 +58,7 @@ services:
       - "traefik.http.routers.traefik-secure.middlewares=secHeaders@file,traefik-auth"
 
   onlyoffice:
-    image: onlyoffice:documentsever:7.2
+    image: onlyoffice/documentserver:7.2
     container_name: onlyoffice
     environment:
       - JWT_ENABLED=true
