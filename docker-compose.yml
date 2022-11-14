@@ -1,0 +1,86 @@
+version: "3.9"
+
+networks:
+  proxy:
+    driver: bridge
+    external: true
+
+services:
+  traefik:
+    image: traefik:2.9
+    container_name: traefik
+    command:
+      - --api=true
+      - --api.dashboard=true
+      - --entryPoints.http.address=:80
+      - --entryPoints.https.address=:443
+      - --providers.docker=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=proxy
+      - --certificatesResolvers.http.acme.email=$LETSENCRYPT_EMAIL
+      - --certificatesResolvers.http.acme.storage=/acme.json
+      - --certificatesResolvers.http.acme.httpChallenge.entryPoint=http
+      - --log=true
+      - --log.filepath:/logs/traefik2/traefik.log
+      - --log.level=INFO
+      - --accesslog=true
+      - --accesslog.filepath:/logs/traefik2/access.log
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    networks:
+      - proxy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - $DOCKER_DIR/appdata/traefik2/acme.json:/acme.json
+      - $DOCKER_DIR/logs/traefik2:/var/log
+    environment:
+      - TZ=$TZ
+    labels:
+      - "traefik.enable=true"
+      # http to https redirect
+      - "traefik.http.routers.http-catchall.entrypoints=http"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # host
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`$TRAEFIK_DOMAIN`)"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=http"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "providers.file.filename=/dynamic_conf.yml"
+      # middlewares
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=$TRAEFIK_BASIC_AUTH"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.traefik-secure.middlewares=secHeaders@file,traefik-auth"
+
+  onlyoffice:
+    image: onlyoffice:documentsever:7.2
+    container_name: onlyoffice
+    restart: unless-stopped
+    networks:
+      - proxy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - $DOCKER_DIR/logs/onlyoffice/logs:/var/log/onlyoffice
+      - $DOCKER_DIR/appdata/onlyoffice/data:/var/www/onlyoffice/Data
+      - $DOCKER_DIR/appdata/onlyoffice/lib:/var/lib/onlyoffice/
+      - $DOCKER_DIR/appdata/onlyoffice/db:/var/lib/postgresql/
+    labels:
+      - "traefik.enable=true"
+      # host
+      - "traefik.http.routers.onlyoffice-secure.entrypoints=https"
+      - "traefik.http.routers.onlyoffice-secure.rule=Host(`$ONLYOFFICE_DOMAIN`)"
+      - "traefik.http.routers.onlyoffice-secure.tls=true"
+      - "traefik.http.routers.onlyoffice-secure.tls.certresolver=http"
+      - "traefik.http.routers.onlyoffice-secure.service=onlyoffice"
+      - "traefik.http.services.onlyoffice.loadbalancer.server.port=80"
+      # middlewares
+      - "traefik.http.routers.onlyoffice-secure.middlewares=onlyoffice-headers"
+      - "traefik.http.middlewares.onlyoffice-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.onlyoffice-headers.headers.accesscontrolalloworiginlist=$ONLYOFFICE_ACCESS_CONTROL_ALLOW_ORIGIN_LIST"

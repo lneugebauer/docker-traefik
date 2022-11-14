@@ -1,0 +1,14 @@
+.DS_Store
+.env
+
+!appdata
+appdata/*
+!appdata/onlyoffice
+!appdata/traefik2
+
+!logs
+logs/*
+!logs/onlyoffice
+logs/onlyoffice/*
+!logs/traefik2
+logs/traefik2/*
