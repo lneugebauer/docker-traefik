@@ -21,10 +21,10 @@ services:
       - --certificatesResolvers.http.acme.storage=/acme.json
       - --certificatesResolvers.http.acme.httpChallenge.entryPoint=http
       - --log=true
-      - --log.filepath:/logs/traefik2/traefik.log
+      - --log.filepath=/logs/traefik2/traefik.log
       - --log.level=INFO
       - --accesslog=true
-      - --accesslog.filepath:/logs/traefik2/access.log
+      - --accesslog.filepath=/logs/traefik2/access.log
     ports:
       - 80:80
       - 443:443
