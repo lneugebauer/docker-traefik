@@ -3,8 +3,13 @@
 
 !appdata
 appdata/*
-!appdata/onlyoffice
+!appdata/grafana
+!appdata/influxdb
+!appdata/prometheus
+!appdata/telegraf
 !appdata/traefik2
+!appdata/uptime-kuma
+!appdata/wikijs
 
 !logs
 logs/*

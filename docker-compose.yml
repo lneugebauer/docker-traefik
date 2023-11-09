@@ -4,6 +4,10 @@ networks:
   proxy:
     external: true
 
+secrets:
+  htpasswd:
+    file: ./secrets/htpasswd
+
 services:
   traefik:
     image: traefik:2.9
@@ -11,20 +15,23 @@ services:
     command:
       - --api=true
       - --api.dashboard=true
-      - --entryPoints.http.address=:80
-      - --entryPoints.https.address=:443
-      - --providers.docker=true
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+      - --providers.docker
       - --providers.docker.endpoint=unix:///var/run/docker.sock
-      - --providers.docker.exposedByDefault=false
+      - --providers.docker.exposedbydefault=false
       - --providers.docker.network=proxy
-      - --certificatesResolvers.http.acme.email=$LETSENCRYPT_EMAIL
-      - --certificatesResolvers.http.acme.storage=/acme.json
-      - --certificatesResolvers.http.acme.httpChallenge.entryPoint=http
-      - --log=true
-      - --log.filepath=/logs/traefik2/traefik.log
+      - --providers.docker.swarmmode=false
+      - --providers.file.directory=/rules
+      - --providers.file.watch=true
+      - --certificatesresolvers.http.acme.email=$LETSENCRYPT_EMAIL
+      - --certificatesresolvers.http.acme.storage=/acme.json
+      - --certificatesresolvers.http.acme.httpchallenge=true
+      - --certificatesresolvers.http.acme.httpchallenge.entrypoint=http
+      - --log.filePath=/logs/traefik.log
       - --log.level=INFO
-      - --accesslog=true
-      - --accesslog.filepath=/logs/traefik2/access.log
+      - --accessLog.filePath=/logs/access.log
+      - --metrics.prometheus=true
     ports:
       - 80:80
       - 443:443
@@ -34,10 +41,13 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - $DOCKER_DIR/appdata/traefik2/acme.json:/acme.json
-      - $DOCKER_DIR/logs/traefik2:/var/log
+      - ./appdata/traefik2/acme.json:/acme.json
+      - ./appdata/traefik2/rules/:/rules
+      - ./logs/traefik2/:/logs
     environment:
-      - TZ=$TZ
+      - HTPASSWD_FILE=/run/secrets/htpasswd
+    secrets:
+      - htpasswd
     labels:
       - "traefik.enable=true"
       # http to https redirect
@@ -51,18 +61,15 @@ services:
       - "traefik.http.routers.traefik-secure.tls=true"
       - "traefik.http.routers.traefik-secure.tls.certresolver=http"
       - "traefik.http.routers.traefik-secure.service=api@internal"
-      - "providers.file.filename=/dynamic_conf.yml"
       # middlewares
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=$TRAEFIK_BASIC_AUTH"
-      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.traefik-secure.middlewares=secHeaders@file,traefik-auth"
+      #- "traefik.http.routers.traefik-secure.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.traefik-secure.middlewares=chain-basic-auth@file"
 
   onlyoffice:
-    image: onlyoffice/documentserver:7.2
+    image: onlyoffice/documentserver:latest
     container_name: onlyoffice
     environment:
-      - JWT_ENABLED=true
-      - JTW_SECRET=$ONLYOFFICE_JWT_SECRET
+      - JWT_SECRET=$ONLYOFFICE_JWT_SECRET
       - NGINX_WORKER_PROCESSES=$ONLYOFFICE_NGINX_WORKER_PROCESSES
       - NGINX_WORKER_CONNECTIONS=$ONLYOFFICE_NGINX_WORKER_CONNECTIONS
     restart: unless-stopped
@@ -71,10 +78,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - $DOCKER_DIR/logs/onlyoffice/logs:/var/log/onlyoffice
-      - $DOCKER_DIR/appdata/onlyoffice/data:/var/www/onlyoffice/Data
-      - $DOCKER_DIR/appdata/onlyoffice/lib:/var/lib/onlyoffice/
-      - $DOCKER_DIR/appdata/onlyoffice/db:/var/lib/postgresql/
+      - ./logs/onlyoffice:/var/log/onlyoffice
     labels:
       - "traefik.enable=true"
       # host
@@ -87,4 +91,174 @@ services:
       # middlewares
       - "traefik.http.routers.onlyoffice-secure.middlewares=onlyoffice-headers"
       - "traefik.http.middlewares.onlyoffice-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.middlewares.onlyoffice-headers.headers.accesscontrolalloworiginlist=$ONLYOFFICE_ACCESS_CONTROL_ALLOW_ORIGIN_LIST"
+      - "traefik.http.middlewares.onlyoffice-headers.headers.accessControlAllowOriginList=$ONLYOFFICE_ACCESS_CONTROL_ALLOW_ORIGIN_LIST"
+
+  wikijs-db:
+    image: postgres:11-alpine
+    container_name: wikijs-db
+    environment:
+      - POSTGRES_DB=$WIKIJS_DB
+      - POSTGRES_PASSWORD=$WIKIJS_PASSWORD
+      - POSTGRES_USER=$WIKIJS_USER
+    restart: unless-stopped
+    volumes:
+      - ./appdata/wikijs/db:/var/lib/postgresql/data
+    networks:
+      - proxy
+
+  wikijs:
+    image: requarks/wiki:2
+    container_name: wikijs
+    depends_on:
+      - wikijs-db
+    environment:
+      - DB_TYPE=postgres
+      - DB_HOST=wikijs-db
+      - DB_PORT=5432
+      - DB_USER=$WIKIJS_USER
+      - DB_PASS=$WIKIJS_PASSWORD
+      - DB_NAME=$WIKIJS_DB
+    restart: unless-stopped
+    volumes:
+      - ./appdata/wikijs/.ssh:/home/node/.ssh
+    labels:
+      - "traefik.enable=true"
+     # host
+      - "traefik.http.routers.wikijs-secure.entrypoints=https"
+      - "traefik.http.routers.wikijs-secure.rule=Host(`$WIKIJS_DOMAIN`)"
+      - "traefik.http.routers.wikijs-secure.tls=true"
+      - "traefik.http.routers.wikijs-secure.tls.certresolver=http"
+      - "traefik.http.routers.wikijs-secure.service=wikijs"
+      - "traefik.http.services.wikijs.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy"
+    networks:
+       - proxy
+
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    restart: unless-stopped
+    volumes:
+      - ./appdata/influxdb/lib:/var/lib/influxdb2
+      - ./appdata/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # host
+      - "traefik.http.routers.influxdb-secure.entrypoints=https"
+      - "traefik.http.routers.influxdb-secure.rule=Host(`$INFLUXDB_DOMAIN`)"
+      - "traefik.http.routers.influxdb-secure.tls=true"
+      - "traefik.http.routers.influxdb-secure.tls.certresolver=http"
+      - "traefik.http.routers.influxdb-secure.service=influxdb"
+      - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
+      - "traefik.docker.network=proxy"
+
+  telegraf:
+    image: telegraf:alpine
+    container_name: telegraf
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+    volumes:
+      - ./appdata/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    networks:
+      - proxy
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./appdata/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./appdata/prometheus/data:/prometheus
+    networks:
+      - proxy
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - proxy
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    restart: unless-stopped
+    user: "$GRAFANA_USER"
+    depends_on:
+      - influxdb
+    volumes:
+      - ./appdata/grafana/lib:/var/lib/grafana
+    networks:
+       - proxy
+    environment:
+      - GF_SERVER_DOMAIN=$GRAFANA_DOMAIN
+      - GF_SERVER_ROOT_URL=https://%(domain)s/
+    labels:
+      - "traefik.enable=true"
+      # host
+      - "traefik.http.routers.grafana-secure.entrypoints=https"
+      - "traefik.http.routers.grafana-secure.rule=Host(`$GRAFANA_DOMAIN`)"
+      - "traefik.http.routers.grafana-secure.tls=true"
+      - "traefik.http.routers.grafana-secure.tls.certresolver=http"
+      - "traefik.http.routers.grafana-secure.service=grafana"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./appdata/uptime-kuma/data:/app/data
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # host
+      - "traefik.http.routers.uptime-kuma-secure.entrypoints=https"
+      - "traefik.http.routers.uptime-kuma-secure.rule=Host(`$UPTIME_KUMA_DOMAIN`)"
+      - "traefik.http.routers.uptime-kuma-secure.tls=true"
+      - "traefik.http.routers.uptime-kuma-secure.tls.certresolver=http"
+      - "traefik.http.routers.uptime-kuma-secure.service=uptime-kuma"
+      - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
+      # middlwares
+      - "traefik.http.routers.uptime-kuma-secure.middlewares=chain-basic-auth@file"
+
+  snapdrop:
+    image: lscr.io/linuxserver/snapdrop:latest
+    container_name: snapdrop
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # host
+      - "traefik.http.routers.snapdrop-secure.entrypoints=https"
+      - "traefik.http.routers.snapdrop-secure.rule=Host(`$SNAPDROP_DOMAIN`)"
+      - "traefik.http.routers.snapdrop-secure.tls=true"
+      - "traefik.http.routers.snapdrop-secure.tls.certresolver=http"
+      - "traefik.http.routers.snapdrop-secure.service=snapdrop"
+      - "traefik.http.services.snapdrop.loadbalancer.server.port=80"
+      # middlewares
+      - "traefik.http.routers.snapdrop-secure.middlewares=chain-basic-auth@file"
