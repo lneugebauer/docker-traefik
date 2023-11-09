@@ -3,7 +3,7 @@
 
 appdata/grafana/*
 !appdata/grafana/.gitkeep
-appdata/influxdb/+
+appdata/influxdb/*
 !appdata/influxdb/.gitkeep
 appdata/prometheus/*
 !appdata/prometheus/.gitkeep
