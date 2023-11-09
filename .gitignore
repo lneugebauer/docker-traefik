@@ -1,19 +1,20 @@
 .DS_Store
 .env
 
-!appdata
-appdata/*
-!appdata/grafana
-!appdata/influxdb
-!appdata/prometheus
-!appdata/telegraf
-!appdata/traefik2
-!appdata/uptime-kuma
-!appdata/wikijs
+appdata/grafana/*
+!appdata/grafana/.gitkeep
+appdata/influxdb/+
+!appdata/influxdb/.gitkeep
+appdata/prometheus/*
+!appdata/prometheus/.gitkeep
+appdata/telegraf/*
+!appdata/telegraf/.gitkeep
+appdata/traefik2/*
+!appdata/traefik2/.gitkeep
+appdata/uptime-kuma/*
+!appdata/uptime-kuma/.gitkeep
+appdata/wikijs/*
+!appdata/wikijs/.gitkeep
 
-!logs
-logs/*
-!logs/onlyoffice
-logs/onlyoffice/*
-!logs/traefik2
 logs/traefik2/*
+!logs/traefik2/.gitkeep
