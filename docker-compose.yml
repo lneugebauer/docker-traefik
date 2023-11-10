@@ -289,6 +289,8 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://$UMAMI_USER:$UMAMI_PASSWORD@umami-db:5432/$UMAMI_DB
+      - DATABASE_TYPE=postgresql
+      - APP_SECRET=$UMAMI_SECRET
     restart: unless-stopped
     networks:
       - proxy
