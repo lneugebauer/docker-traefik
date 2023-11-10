@@ -271,6 +271,11 @@ services:
       - POSTGRES_PASSWORD=$UMAMI_PASSWORD
       - POSTGRES_USER=$UMAMI_USER
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - ./appdata/umami/db:/var/lib/postgresql/data
     networks:
@@ -285,11 +290,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://$UMAMI_USER:$UMAMI_PASSWORD@umami-db:5432/$UMAMI_DB
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - proxy
     labels:
