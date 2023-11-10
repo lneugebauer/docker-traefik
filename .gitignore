@@ -11,6 +11,8 @@ appdata/telegraf/*
 !appdata/telegraf/.gitkeep
 appdata/traefik2/*
 !appdata/traefik2/.gitkeep
+appdata/umami/*
+!appdata/umami/.gitkeep
 appdata/uptime-kuma/*
 !appdata/uptime-kuma/.gitkeep
 appdata/wikijs/*

@@ -262,3 +262,42 @@ services:
       - "traefik.http.services.snapdrop.loadbalancer.server.port=80"
       # middlewares
       - "traefik.http.routers.snapdrop-secure.middlewares=chain-basic-auth@file"
+
+  umami-db:
+    image: postgres:15-alpine
+    container_name: umami-db
+    environment:
+      - POSTGRES_DB=$UMAMI_DB
+      - POSTGRES_PASSWORD=$UMAMI_PASSWORD
+      - POSTGRES_USER=$UMAMI_USER
+    restart: unless-stopped
+    volumes:
+      - ./appdata/umami/db:/var/lib/postgresql/data
+    networks:
+      - proxy
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: umami
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://$UMAMI_USER:$UMAMI_PASSWORD@umami-db:5432/$UMAMI_DB
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # host
+      - "traefik.http.routers.umami-secure.entrypoints=https"
+      - "traefik.http.routers.umami-secure.rule=Host(`$UMAMI_DOMAIN`)"
+      - "traefik.http.routers.umami-secure.tls=true"
+      - "traefik.http.routers.umami-secure.tls.certresolver=http"
+      - "traefik.http.routers.umami-secure.service=umami"
+      - "traefik.http.services.umami.loadbalancer.server.port=3000"
