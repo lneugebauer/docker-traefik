@@ -241,28 +241,6 @@ services:
       # middlwares
       - "traefik.http.routers.uptime-kuma-secure.middlewares=chain-basic-auth@file"
 
-  snapdrop:
-    image: lscr.io/linuxserver/snapdrop:latest
-    container_name: snapdrop
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Berlin
-    restart: unless-stopped
-    networks:
-      - proxy
-    labels:
-      - "traefik.enable=true"
-      # host
-      - "traefik.http.routers.snapdrop-secure.entrypoints=https"
-      - "traefik.http.routers.snapdrop-secure.rule=Host(`$SNAPDROP_DOMAIN`)"
-      - "traefik.http.routers.snapdrop-secure.tls=true"
-      - "traefik.http.routers.snapdrop-secure.tls.certresolver=http"
-      - "traefik.http.routers.snapdrop-secure.service=snapdrop"
-      - "traefik.http.services.snapdrop.loadbalancer.server.port=80"
-      # middlewares
-      - "traefik.http.routers.snapdrop-secure.middlewares=chain-basic-auth@file"
-
   umami-db:
     image: postgres:15-alpine
     container_name: umami-db
