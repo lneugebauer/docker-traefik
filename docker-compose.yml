@@ -328,6 +328,7 @@ services:
       - ./appdata/paperless-ngx/consume:/usr/src/paperless/consume
     environment:
       PAPERLESS_REDIS: redis://paperless-ngx-redis:6379
+      PAPERLESS_URL: https://$PAPERLESS_NGX_DOMAIN
       PAPERLESS_DBHOST: paperless-ngx-db
       PAPERLESS_DBNAME: $PAPERLESS_NGX_DB
       PAPERLESS_DBUSER: $PAPERLESS_NGX_USER
@@ -346,6 +347,8 @@ services:
       - "traefik.http.routers.paperless-ngx-secure.tls.certresolver=http"
       - "traefik.http.routers.paperless-ngx-secure.service=paperless-ngx"
       - "traefik.http.services.paperless-ngx.loadbalancer.server.port=8000"
+      - "traefik.http.routers.paperless-ngx-secure.middlewares=paperless-ngx-headers"
+      - "traefik.http.middlewares.paperless-ngx-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
 
   gotenberg:
     image: docker.io/gotenberg/gotenberg:7.10
