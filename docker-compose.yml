@@ -347,6 +347,8 @@ services:
       - "traefik.http.routers.paperless-ngx-secure.tls.certresolver=http"
       - "traefik.http.routers.paperless-ngx-secure.service=paperless-ngx"
       - "traefik.http.services.paperless-ngx.loadbalancer.server.port=8000"
+      # middlwares
+      - "traefik.http.routers.paperless-ngx-secure.middlewares=chain-basic-auth@file"
       - "traefik.http.routers.paperless-ngx-secure.middlewares=paperless-ngx-headers"
       - "traefik.http.middlewares.paperless-ngx-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
 
