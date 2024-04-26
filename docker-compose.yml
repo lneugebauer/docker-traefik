@@ -280,3 +280,75 @@ services:
       - "traefik.http.routers.umami-secure.tls.certresolver=http"
       - "traefik.http.routers.umami-secure.service=umami"
       - "traefik.http.services.umami.loadbalancer.server.port=3000"
+
+  paperless-ngx-redis:
+    image: docker.io/library/redis:7
+    container_name: paperless-ngx-redis
+    restart: unless-stopped
+    volumes:
+      - ./appdata/paperless-ngx/broker:/data
+    networks:
+      - proxy
+
+  paperless-ngx-db:
+    image: docker.io/library/postgres:15
+    container_name: paperless-ngx-db
+    restart: unless-stopped
+    volumes:
+      - ./appdata/paperless-ngx/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+    networks:
+      - proxy
+
+  paperless-ngx:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless-ngx
+    restart: unless-stopped
+    depends_on:
+      - paperless-ngx-db
+      - paperless-ngx-redis
+      - gotenberg
+      - tika
+    volumes:
+      - ./appdata/paperless-ngx/data:/usr/src/paperless/data
+      - ./appdata/paperless-ngx/media:/usr/src/paperless/media
+      - ./appdata/paperless-ngx/export:/usr/src/paperless/export
+      - ./appdata/paperless-ngx/consume:/usr/src/paperless/consume
+    environment:
+      PAPERLESS_REDIS: redis://paperless-ngx-redis:6379
+      PAPERLESS_DBHOST: db
+      PAPERLESS_TIKA_ENABLED: 1
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
+      PAPERLESS_TIKA_ENDPOINT: http://tika:9998
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # host
+      - "traefik.http.routers.paperless-ngx-secure.entrypoints=https"
+      - "traefik.http.routers.paperless-ngx-secure.rule=Host(`$PAPERLESS_NGX_DOMAIN`)"
+      - "traefik.http.routers.paperless-ngx-secure.tls=true"
+      - "traefik.http.routers.paperless-ngx-secure.tls.certresolver=http"
+      - "traefik.http.routers.paperless-ngx-secure.service=paperless-ngx"
+      - "traefik.http.services.paperless-ngx.loadbalancer.server.port=8000"
+
+  gotenberg:
+    image: docker.io/gotenberg/gotenberg:7.10
+    container_name: gotenberg
+    restart: unless-stopped
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=true"
+      - "--chromium-allow-list=file:///tmp/.*"
+    networks:
+      - proxy
+
+  tika:
+    image: ghcr.io/paperless-ngx/tika:latest
+    container_name: tika
+    restart: unless-stopped
+    networks:
+      - proxy
