@@ -4,6 +4,7 @@ http:
       basicAuth:
         usersFile: "/run/secrets/htpasswd" #be sure to mount the volume through docker-compose.yml
         realm: "Traefik 2 Basic Auth"
+        removeHeader: true
 
     middlewares-rate-limit:
       rateLimit:
