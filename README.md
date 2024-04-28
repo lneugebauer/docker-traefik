@@ -8,7 +8,6 @@ $ git pull docker-traefik
 $ cd docker-traefik/
 $ cp .env.example .env
 $ vim .env 
-$ docker network create “proxy”
 $ docker compose up -d
 $ ln -s /opt/docker-traefik/logrotate traefik
 ```
