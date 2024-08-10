@@ -20,5 +20,7 @@ appdata/uptime-kuma/*
 appdata/wikijs/*
 !appdata/wikijs/.gitkeep
 
+!logs/onlyoffice
+logs/onlyoffice/*
 logs/traefik2/*
 !logs/traefik2/.gitkeep
