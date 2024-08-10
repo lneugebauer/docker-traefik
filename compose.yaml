@@ -349,7 +349,7 @@ services:
       - "traefik.http.middlewares.paperless-ngx-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
 
   gotenberg:
-    image: docker.io/gotenberg/gotenberg:7.10
+    image: docker.io/gotenberg/gotenberg:8.7
     container_name: gotenberg
     restart: unless-stopped
     command:
