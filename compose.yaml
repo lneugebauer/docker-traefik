@@ -227,7 +227,7 @@ services:
       #- "traefik.http.routers.uptime-kuma-secure.middlewares=chain-basic-auth@file"
 
   umami-db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: umami-db
     environment:
       - POSTGRES_DB=$UMAMI_DB
@@ -277,7 +277,7 @@ services:
       - proxy
 
   paperless-ngx-db:
-    image: docker.io/library/postgres:15
+    image: postgres:16-alpine
     container_name: paperless-ngx-db
     restart: unless-stopped
     healthcheck:
