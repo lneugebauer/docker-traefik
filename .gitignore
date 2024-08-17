@@ -9,8 +9,6 @@ appdata/paperless-ngx/*
 !appdata/paperless-ngx/.gitkeep
 appdata/prometheus/*
 !appdata/prometheus/.gitkeep
-appdata/telegraf/*
-!appdata/telegraf/.gitkeep
 appdata/traefik2/*
 !appdata/traefik2/.gitkeep
 appdata/umami/*
