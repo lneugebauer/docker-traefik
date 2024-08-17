@@ -150,17 +150,6 @@ services:
       - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
       - "traefik.docker.network=proxy"
 
-  telegraf:
-    image: telegraf:alpine
-    container_name: telegraf
-    depends_on:
-      - influxdb
-    restart: unless-stopped
-    volumes:
-      - ./appdata/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
-    networks:
-      - proxy
-
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
