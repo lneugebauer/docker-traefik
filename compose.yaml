@@ -89,47 +89,6 @@ services:
       - "traefik.http.middlewares.onlyoffice-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.onlyoffice-headers.headers.accessControlAllowOriginList=$ONLYOFFICE_ACCESS_CONTROL_ALLOW_ORIGIN_LIST"
 
-  wikijs-db:
-    image: postgres:11-alpine
-    container_name: wikijs-db
-    environment:
-      - POSTGRES_DB=$WIKIJS_DB
-      - POSTGRES_PASSWORD=$WIKIJS_PASSWORD
-      - POSTGRES_USER=$WIKIJS_USER
-    restart: unless-stopped
-    volumes:
-      - ./appdata/wikijs/db:/var/lib/postgresql/data
-    networks:
-      - proxy
-
-  wikijs:
-    image: requarks/wiki:2
-    container_name: wikijs
-    depends_on:
-      - wikijs-db
-    environment:
-      - DB_TYPE=postgres
-      - DB_HOST=wikijs-db
-      - DB_PORT=5432
-      - DB_USER=$WIKIJS_USER
-      - DB_PASS=$WIKIJS_PASSWORD
-      - DB_NAME=$WIKIJS_DB
-    restart: unless-stopped
-    volumes:
-      - ./appdata/wikijs/.ssh:/home/node/.ssh
-    labels:
-      - "traefik.enable=true"
-     # host
-      - "traefik.http.routers.wikijs-secure.entrypoints=https"
-      - "traefik.http.routers.wikijs-secure.rule=Host(`$WIKIJS_DOMAIN`)"
-      - "traefik.http.routers.wikijs-secure.tls=true"
-      - "traefik.http.routers.wikijs-secure.tls.certresolver=http"
-      - "traefik.http.routers.wikijs-secure.service=wikijs"
-      - "traefik.http.services.wikijs.loadbalancer.server.port=3000"
-      - "traefik.docker.network=proxy"
-    networks:
-       - proxy
-
   influxdb:
     image: influxdb:latest
     container_name: influxdb
