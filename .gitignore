@@ -15,8 +15,6 @@ appdata/umami/*
 !appdata/umami/.gitkeep
 appdata/uptime-kuma/*
 !appdata/uptime-kuma/.gitkeep
-appdata/wikijs/*
-!appdata/wikijs/.gitkeep
 
 !logs/onlyoffice
 logs/onlyoffice/*
