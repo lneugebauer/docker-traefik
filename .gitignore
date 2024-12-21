@@ -5,8 +5,6 @@ appdata/grafana/*
 !appdata/grafana/.gitkeep
 appdata/influxdb/*
 !appdata/influxdb/.gitkeep
-appdata/paperless-ngx/*
-!appdata/paperless-ngx/.gitkeep
 appdata/prometheus/*
 !appdata/prometheus/.gitkeep
 appdata/traefik2/*
