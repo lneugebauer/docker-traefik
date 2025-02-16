@@ -6,7 +6,7 @@
 $ cd /opt/
 $ git pull docker-traefik
 $ cd docker-traefik/
-$ cp .env.example .env
+$ cp .env.dist .env
 $ vim .env 
 $ docker compose up -d
 $ ln -s /opt/docker-traefik/logrotate traefik
